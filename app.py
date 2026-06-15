@@ -1,13 +1,14 @@
 """Hugging Face Space frontend for the Tata Steel Maintenance Wizard.
 
-This Space defaults to a fast Qwen3-0.6B triage profile for responsive demos,
-with Qwen3-8B + LoRA available for high-fidelity maintenance reasoning. The
+This Space defaults to Qwen3-4B balanced reasoning, with Qwen3-8B + LoRA
+available for high-fidelity maintenance reasoning. The
 backend combines RAG, ML scoring, dynamic memory, safety rules, spares,
 logbooks, verifier checks, and Qwen final natural-language synthesis.
 """
 
 from __future__ import annotations
 
+import html
 import json
 import math
 import gc
@@ -646,6 +647,31 @@ Ready. Ask a maintenance, reliability, safety, spares, SOP, RCA, quality or oper
     return "\n".join(lines)
 
 
+def format_chat_activity_bubble(message: str, stage: str, stages: list[str]) -> str:
+    current_stage = stage or (stages[0] if stages else "Understanding the request")
+    subject = infer_prompt_subject(message)
+    intent = infer_activity_intent(message)
+    items = []
+    for item in stages:
+        active_class = " active" if item == current_stage else ""
+        marker = "▶" if item == current_stage else "→"
+        items.append(
+            f"<li class='activity-step{active_class}'><span>{marker}</span>{html.escape(item)}</li>"
+        )
+    return f"""
+<div class="agent-running-bubble">
+  <div class="running-head">
+    <div class="typing-dots"><span></span><span></span><span></span></div>
+    <div>
+      <b>Working on {html.escape(subject)}</b>
+      <small>{html.escape(intent)} · {html.escape(current_stage)}</small>
+    </div>
+  </div>
+  <ol>{''.join(items)}</ol>
+</div>
+"""
+
+
 def format_answer_phase(result: dict | None = None) -> str:
     """Keep the activity panel quiet once the user-facing answer starts typing."""
     selected = "plant context"
@@ -1041,12 +1067,11 @@ def ask_agent(
     empty_packet = json.dumps({}, indent=2)
     assets_snapshot = asset_table()
     memory_snapshot = memory_table()
-    loading_bubble = "<div class='typing-dots'><span></span><span></span><span></span></div>"
-    running_history[-1] = (message, loading_bubble)
+    running_history[-1] = (message, format_chat_activity_bubble(message, running_stages[0], running_stages))
     yield (
         running_history,
         clear_composer,
-        gr.update(value=format_activity(running=True, message=message, stage=running_stages[0], stages=running_stages), visible=True),
+        gr.update(value="", visible=False),
         gr.update(visible=False),
         format_activity(running=True, message=message, stage=running_stages[0], stages=running_stages),
         *run_stop_controls(True),
@@ -1104,24 +1129,17 @@ def ask_agent(
             )
             yield timeout_history, keep_composer, gr.update(value="", visible=False), gr.update(visible=False), timeout_activity, *run_stop_controls(False), timeout_packet, "[]", "[]", "[]", assets_snapshot, memory_snapshot
             return
-        running_history[-1] = (message, loading_bubble)
+        current_stage = running_stages[tick % len(running_stages)]
+        running_history[-1] = (message, format_chat_activity_bubble(message, current_stage, running_stages))
         yield (
             running_history,
             keep_composer,
-            gr.update(
-                value=format_activity(
-                    running=True,
-                    message=message,
-                    stage=running_stages[tick % len(running_stages)],
-                    stages=running_stages,
-                ),
-                visible=True,
-            ),
+            gr.update(value="", visible=False),
             gr.update(visible=False),
             format_activity(
                 running=True,
                 message=message,
-                stage=running_stages[tick % len(running_stages)],
+                stage=current_stage,
                 stages=running_stages,
             ),
             *run_stop_controls(True),
@@ -1423,15 +1441,15 @@ User request:
 CSS = """
 .gradio-container { max-width: 1500px !important; background: #0b1120 !important; }
 .hero {
-  padding: 24px 28px;
-  border-radius: 16px;
+  padding: 12px 18px;
+  border-radius: 14px;
   background: radial-gradient(circle at top left, #155e75 0%, #111827 42%, #020617 100%);
   color: white;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
   border: 1px solid rgba(148, 163, 184, 0.25);
 }
-.hero h1 { margin: 0 0 6px 0; font-size: 30px; }
-.hero p { margin: 0; opacity: 0.92; }
+.hero h1 { margin: 0 0 4px 0; font-size: 24px; }
+.hero p { margin: 0; opacity: 0.92; font-size: 13px; }
 .metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 10px 0 16px; }
 .metric-card { border: 1px solid rgba(148,163,184,.22); background: #0f172a; border-radius: 14px; padding: 14px 16px; }
 .metric-card.danger { border-color: rgba(239,68,68,.45); }
@@ -1444,10 +1462,12 @@ CSS = """
 .feature-chip { border: 1px solid rgba(14,165,233,.22); background: rgba(15,23,42,.92); color: #e2e8f0; border-radius: 14px; padding: 12px 13px; min-height: 74px; }
 .feature-chip b { display: block; color: #f8fafc; margin-bottom: 4px; font-size: 13px; }
 .feature-chip span { color: #94a3b8; font-size: 12px; line-height: 1.35; }
-.chat-shell { align-items: stretch; }
+.chat-shell { align-items: stretch; height: calc(100vh - 132px); overflow: hidden; }
 .left-sidebar .feature-grid { grid-template-columns: 1fr; }
-.left-sidebar, .right-sidebar { max-height: calc(100vh - 170px); overflow-y: auto; padding-right: 4px; }
-.chat-center { min-width: min(760px, 100%); }
+.left-sidebar, .right-sidebar { height: calc(100vh - 132px); overflow: hidden; padding-right: 4px; }
+.chat-center { min-width: min(760px, 100%); height: calc(100vh - 132px); overflow: hidden; }
+.chatbot-scroll { min-height: 0; }
+.chat-visual { border: 1px solid rgba(14,165,233,.25); border-radius: 12px; overflow: hidden; max-height: 260px; }
 .composer-row {
   position: sticky;
   bottom: 0;
@@ -1460,6 +1480,14 @@ CSS = """
 .chat-working-panel { border: 1px solid rgba(14,165,233,.32); background: rgba(14,165,233,.08); color: #dbeafe; border-radius: 14px; padding: 12px 14px; margin-bottom: 10px; }
 .demo-prompt-list { gap: 8px; }
 .demo-prompt-btn { text-align: left !important; justify-content: flex-start !important; white-space: normal !important; min-height: 44px; border-radius: 12px !important; }
+.agent-running-bubble { border: 1px solid rgba(14,165,233,.30); background: rgba(14,165,233,.08); border-radius: 14px; padding: 13px 14px; }
+.running-head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.running-head b { display: block; color: #0f172a; font-size: 14px; }
+.running-head small { display: block; color: #64748b; margin-top: 2px; }
+.agent-running-bubble ol { margin: 8px 0 0 0; padding-left: 0; list-style: none; }
+.activity-step { display: flex; gap: 8px; padding: 4px 0; color: #475569; font-size: 13px; line-height: 1.35; }
+.activity-step span { color: #0284c7; min-width: 18px; }
+.activity-step.active { color: #0f172a; font-weight: 700; }
 .status-pill {
   display: inline-block;
   padding: 4px 10px;
@@ -1507,17 +1535,17 @@ with gr.Blocks(title="FeCMind: Tata Steel Agentic AI", css=CSS, theme=gr.themes.
                             </div>
                             """
                         )
-                    gr.Markdown("### One-click demo prompts")
                     demo_prompt_buttons: list[tuple[gr.Button, gr.State]] = []
-                    with gr.Column(elem_classes=["demo-prompt-list"]):
-                        for example_prompt in EXAMPLES:
-                            prompt_state = gr.State(example_prompt)
-                            prompt_button = gr.Button(example_prompt, variant="secondary", size="sm", elem_classes=["demo-prompt-btn"])
-                            demo_prompt_buttons.append((prompt_button, prompt_state))
+                    with gr.Accordion("One-click demo prompts", open=False):
+                        with gr.Column(elem_classes=["demo-prompt-list"]):
+                            for example_prompt in EXAMPLES:
+                                prompt_state = gr.State(example_prompt)
+                                prompt_button = gr.Button(example_prompt, variant="secondary", size="sm", elem_classes=["demo-prompt-btn"])
+                                demo_prompt_buttons.append((prompt_button, prompt_state))
                 with gr.Column(scale=3, min_width=620, elem_classes=["chat-center"]):
                     chat_activity_md = gr.Markdown(value="", visible=False, elem_classes=["chat-working-panel"])
-                    chatbot = gr.Chatbot(height=620, show_copy_button=True, label="Agent conversation")
-                    chat_visual = gr.Plot(label="Agent visual", visible=False)
+                    chatbot = gr.Chatbot(height=540, show_copy_button=True, label="Agent conversation", elem_classes=["chatbot-scroll"])
+                    chat_visual = gr.Plot(label="Inline analytics generated from this prompt", visible=False, elem_classes=["chat-visual"])
                     with gr.Row(elem_classes=["composer-row"]):
                         prompt_box = gr.Textbox(
                             placeholder="Ask any steel-plant maintenance, operations, safety, spares, RCA, SOP, quality, or reliability question... Press Enter to send.",
