@@ -1436,10 +1436,14 @@ class MaintenanceWizard:
             }
             for doc in docs[:5]
         ]
+        operator_role = str(self.session_memory.get("operator_role") or "Maintenance Engineer")
+        role_duties = str(self.session_memory.get("role_duties") or "")
         return {
             "mode": result.get("mode"),
             "intent": result.get("intent"),
             "task_intent": clean_plan.get("task_intent") or result.get("intent"),
+            "operator_role": operator_role,
+            "role_duties": role_duties,
             "asset_id": result.get("asset_id") or decision.get("selected_asset"),
             "planner": clean_plan,
             "priority": priority,
@@ -1479,6 +1483,20 @@ class MaintenanceWizard:
         lower = clean.lower()
         checks.append({"check": "LLM produced non-empty final answer", "status": "pass" if len(clean) >= 80 else "fail", "detail": f"{len(clean)} chars"})
         checks.append({"check": "No NaN/null display", "status": "pass" if not re.search(r"\b(?:nan|null)\b", lower) else "fail", "detail": "no forbidden tokens"})
+        hidden_leaks = [
+            "acting user role",
+            "role duties",
+            "decision lens",
+            "locked packet",
+            "deterministic tools",
+            "tool calls",
+            "verifier checks",
+        ]
+        checks.append({
+            "check": "No hidden prompt or internal pipeline leak",
+            "status": "pass" if not any(term in lower for term in hidden_leaks) else "fail",
+            "detail": "hidden metadata scan",
+        })
         checks.append({"check": "Answer not truncated", "status": "pass" if not self._looks_truncated(clean) else "fail", "detail": "complete sentence/markdown scan"})
         asset = str(result.get("asset_id") or "").upper()
         decision = result.get("decision_packet") if isinstance(result.get("decision_packet"), dict) else {}

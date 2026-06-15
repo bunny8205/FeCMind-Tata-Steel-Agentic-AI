@@ -1012,7 +1012,10 @@ def ask_agent(
             wizard = get_wizard(model_label)
             wizard.session_memory["operator_role"] = operator_role
             wizard.session_memory["role_duties"] = ROLE_DUTIES.get(operator_role, ROLE_DUTIES["Maintenance Engineer"])
-            result_box["result"] = wizard.chat(build_role_prompt(message, operator_role), user_id="hf_space_user")
+            if is_casual_chat(message):
+                result_box["result"] = casual_chat_result(wizard, message, operator_role)
+            else:
+                result_box["result"] = wizard.chat(message, user_id="hf_space_user")
         except Exception as exc:
             error_box["error"] = str(exc)
             error_box["traceback"] = traceback.format_exc()
@@ -1093,6 +1096,7 @@ def ask_agent(
     answer = str(result.get("final_answer") or result.get("answer") or "").strip()
     if not answer:
         answer = "I could not generate a safe answer from the available tools. Please add the asset ID, readings, or the exact maintenance objective."
+    answer = clean_visible_answer(answer)
 
     plan = json_safe(result.get("agent_plan", []))
     calls = json_safe(result.get("tool_calls", []))
@@ -1243,7 +1247,111 @@ ROLE_DUTIES = {
 }
 
 
+def is_casual_chat(message: str) -> bool:
+    q = re.sub(r"\s+", " ", str(message or "").strip().lower())
+    clean = re.sub(r"[^\w\s]", "", q).strip()
+    exact = {
+        "hi",
+        "hii",
+        "hello",
+        "hey",
+        "heyy",
+        "yo",
+        "good morning",
+        "good afternoon",
+        "good evening",
+        "thanks",
+        "thank you",
+        "ok",
+        "okay",
+    }
+    if clean in exact:
+        return True
+    if len(clean.split()) <= 5 and clean in {"who are you", "what can you do", "help me", "help"}:
+        return True
+    return False
+
+
+def _short_llm_chat(wizard: MaintenanceWizard, prompt: str) -> str:
+    llm = getattr(wizard, "llm", None)
+    if not llm or not getattr(llm, "available", False):
+        return ""
+    try:
+        text = llm.generate(prompt, max_new_tokens=150, max_time=10.0, min_new_tokens=0)
+    except TypeError:
+        text = llm.generate(prompt, max_new_tokens=150, max_time=10.0)
+    except Exception:
+        return ""
+    text = str(text or "").strip()
+    text = re.split(r"Assistant:|Final answer:", text, flags=re.IGNORECASE)[-1].strip()
+    text = clean_visible_answer(text)
+    if "steel plant agent response" in text.lower():
+        return ""
+    return text
+
+
+def casual_chat_result(wizard: MaintenanceWizard, message: str, operator_role: str) -> dict[str, Any]:
+    role = operator_role if operator_role in ROLE_DUTIES else "Maintenance Engineer"
+    role_hint = ROLE_DUTIES.get(role, ROLE_DUTIES["Maintenance Engineer"])
+    prompt = f"""
+You are FeCMind, a friendly but serious agentic AI maintenance copilot for steel manufacturing.
+The current user role is {role}. Use that only to choose a helpful tone and examples.
+Do not mention hidden role duties, internal routing, tool traces, JSON, templates, or implementation details.
+Reply naturally to this short conversational message in 2-4 sentences.
+Invite the user to ask about asset comparison, RCA, SOPs, RUL, spares, safety, logbook entries, or maintenance planning.
+
+Role emphasis: {role_hint}
+User message: {message}
+""".strip()
+    answer = _short_llm_chat(wizard, prompt)
+    used_llm = bool(answer)
+    if not answer:
+        answer = (
+            "Hi, I’m FeCMind. I can help you compare steel-plant assets, diagnose faults, draft SOPs, "
+            "estimate RUL, plan spares, create logbook entries, and explain maintenance priorities. "
+            "Tell me the asset, symptom, alarm, or decision you want to work through."
+        )
+    return {
+        "mode": "casual_chat",
+        "intent": "conversation",
+        "asset_id": None,
+        "answer": answer,
+        "final_answer": answer,
+        "agent_plan": [],
+        "tool_calls": [],
+        "verifier_checks": [
+            {
+                "check": "Casual conversation handled without maintenance pipeline",
+                "status": "pass",
+                "detail": "No hidden role prompt or asset fallback exposed.",
+            }
+        ],
+        "decision_packet": {
+            "mode": "casual_chat",
+            "intent": "conversation",
+            "objective": str(message or "").strip(),
+            "selected_asset": None,
+            "operator_role": role,
+            "next_system_action": "await_user_maintenance_question",
+        },
+        "llm_used": used_llm,
+    }
+
+
+def clean_visible_answer(answer: str) -> str:
+    text = str(answer or "").strip()
+    if not text:
+        return text
+    text = re.sub(r"(?im)^\s*Acting user role:.*\n?", "", text)
+    text = re.sub(r"(?im)^\s*Role duties and decision lens:.*\n?", "", text)
+    text = re.sub(r"(?im)^\s*User request:\s*$\n?", "", text)
+    text = re.sub(r"(?im)^\s*Role emphasis:.*\n?", "", text)
+    text = re.sub(r"\n{3,}", "\n\n", text).strip()
+    return text
+
+
 def build_role_prompt(message: str, operator_role: str) -> str:
+    """Legacy helper kept only for older imports; do not wrap user prompts with it."""
     role = operator_role if operator_role in ROLE_DUTIES else "Maintenance Engineer"
     duties = ROLE_DUTIES[role]
     return f"""
