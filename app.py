@@ -480,9 +480,18 @@ def activity_stages_for_prompt(message: str) -> list[str]:
     subject = infer_prompt_subject(message)
     intent = infer_activity_intent(message)
     stages = [
-        f"Reading the exact request about {subject} and deciding the best maintenance route",
-        f"Asking the LLM planner whether this is {intent}, asset comparison, SOP, RCA, spares, logbook, or safety work",
+        f"Analyzing the prompt: {subject}",
+        "Sending the prompt to Qwen to decide whether this is conversational or technical",
     ]
+    if is_casual_chat(message):
+        stages.extend(
+            [
+                "Qwen route: conversational message, no maintenance tools needed",
+                "Writing a natural assistant reply",
+            ]
+        )
+        return stages
+    stages.append(f"Qwen route: technical maintenance task detected as {intent}")
     if intent == "SOP / field procedure":
         stages.extend(
             [
@@ -1329,13 +1338,16 @@ def is_casual_chat(message: str) -> bool:
         "hey",
         "heyy",
         "yo",
+        "good day",
         "good morning",
         "good afternoon",
         "good evening",
+        "good night",
         "thanks",
         "thank you",
         "ok",
         "okay",
+        "how are you",
     }
     if clean in exact:
         return True
@@ -1462,11 +1474,12 @@ CSS = """
 .feature-chip { border: 1px solid rgba(14,165,233,.22); background: rgba(15,23,42,.92); color: #e2e8f0; border-radius: 14px; padding: 12px 13px; min-height: 74px; }
 .feature-chip b { display: block; color: #f8fafc; margin-bottom: 4px; font-size: 13px; }
 .feature-chip span { color: #94a3b8; font-size: 12px; line-height: 1.35; }
-.chat-shell { align-items: stretch; height: calc(100vh - 132px); overflow: hidden; }
+.chat-shell { align-items: stretch; height: calc(100dvh - 118px); overflow: hidden; }
 .left-sidebar .feature-grid { grid-template-columns: 1fr; }
-.left-sidebar, .right-sidebar { height: calc(100vh - 132px); overflow: hidden; padding-right: 4px; }
-.chat-center { min-width: min(760px, 100%); height: calc(100vh - 132px); overflow: hidden; }
-.chatbot-scroll { min-height: 0; }
+.left-sidebar, .right-sidebar { height: calc(100dvh - 118px); overflow-y: auto; overflow-x: hidden; padding-right: 4px; }
+.chat-center { min-width: min(760px, 100%); height: calc(100dvh - 118px); overflow: hidden; }
+.chatbot-scroll { height: calc(100dvh - 278px) !important; min-height: 430px; }
+.chatbot-scroll > div { height: 100% !important; }
 .chat-visual { border: 1px solid rgba(14,165,233,.25); border-radius: 12px; overflow: hidden; max-height: 260px; }
 .composer-row {
   position: sticky;
@@ -1544,7 +1557,7 @@ with gr.Blocks(title="FeCMind: Tata Steel Agentic AI", css=CSS, theme=gr.themes.
                                 demo_prompt_buttons.append((prompt_button, prompt_state))
                 with gr.Column(scale=3, min_width=620, elem_classes=["chat-center"]):
                     chat_activity_md = gr.Markdown(value="", visible=False, elem_classes=["chat-working-panel"])
-                    chatbot = gr.Chatbot(height=540, show_copy_button=True, label="Agent conversation", elem_classes=["chatbot-scroll"])
+                    chatbot = gr.Chatbot(height=620, show_copy_button=True, label="Agent conversation", elem_classes=["chatbot-scroll"])
                     chat_visual = gr.Plot(label="Inline analytics generated from this prompt", visible=False, elem_classes=["chat-visual"])
                     with gr.Row(elem_classes=["composer-row"]):
                         prompt_box = gr.Textbox(
@@ -1557,7 +1570,27 @@ with gr.Blocks(title="FeCMind: Tata Steel Agentic AI", css=CSS, theme=gr.themes.
                         send_btn = gr.Button("Run Agent", variant="primary", scale=1)
                         stop_btn = gr.Button("Stop", variant="stop", scale=1, visible=False)
                 with gr.Column(scale=1, min_width=300, elem_classes=["right-sidebar"]):
-                    gr.Markdown("### Session Controls")
+                    gr.Markdown("### Model")
+                    gr.Markdown('<span class="status-pill">Selectable Qwen3 local GPU model</span>')
+                    model_dropdown = gr.Dropdown(
+                        label="LLM model",
+                        choices=list(MODEL_OPTIONS.keys()),
+                        value=DEFAULT_MODEL_LABEL,
+                    )
+                    model_note = gr.Markdown(MODEL_OPTIONS[DEFAULT_MODEL_LABEL]["description"])
+                    with gr.Row():
+                        switch_model_btn = gr.Button("Switch / Load", variant="secondary")
+                        warmup_btn = gr.Button("Warm Up")
+                    with gr.Accordion("Runtime status", open=False):
+                        warmup_out = gr.Code(label="Runtime status", language="json", lines=6)
+                    gr.Markdown(
+                        """
+                        <div class="panel-note">
+                        Qwen3-4B is the default reasoning model for industrial prompts, retrieved facts, RUL/risk signals and memory. Deep analysis can take around two minutes depending on the prompt and evidence.
+                        </div>
+                        """
+                    )
+                    gr.Markdown("### Role")
                     role_dropdown = gr.Dropdown(
                         label="Role context",
                         choices=[
@@ -1570,23 +1603,10 @@ with gr.Blocks(title="FeCMind: Tata Steel Agentic AI", css=CSS, theme=gr.themes.
                         ],
                         value="Maintenance Engineer",
                     )
-                    gr.Markdown("### Model Status")
-                    gr.Markdown('<span class="status-pill">Selectable Qwen3 local GPU model</span>')
-                    model_dropdown = gr.Dropdown(
-                        label="LLM model",
-                        choices=list(MODEL_OPTIONS.keys()),
-                        value=DEFAULT_MODEL_LABEL,
-                    )
-                    model_note = gr.Markdown(MODEL_OPTIONS[DEFAULT_MODEL_LABEL]["description"])
-                    with gr.Row():
-                        switch_model_btn = gr.Button("Switch / Load Model", variant="secondary")
-                        warmup_btn = gr.Button("Warm Up / Check Model")
-                    warmup_out = gr.Code(label="Runtime status", language="json", lines=12)
                     gr.Markdown(
                         """
                         <div class="panel-note">
-                        The app opens on Qwen3-4B because it is the best default for reasoning over industrial prompts, retrieved facts, RUL/risk signals and memory. Depending on the analysis required, generation can take around two minutes. Switch to Qwen3-8B LoRA for the highest-fidelity maintenance reasoning, or to smaller Qwen profiles for quick triage.
-                        The dashboard loads from local plant data first; the selected LLM warms only for chat/synthesis.
+                        Role changes the LLM's decision lens and wording without exposing hidden role prompts in the answer.
                         </div>
                         """
                     )
