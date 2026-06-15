@@ -26,7 +26,7 @@ from typing import Any
 
 os.environ.setdefault("MW_USE_LLM", "1")
 os.environ.setdefault("MW_LLM_PROVIDER", "local_gpu")
-os.environ.setdefault("MW_LLM_MODEL_ID", "Qwen/Qwen3-0.6B")
+os.environ.setdefault("MW_LLM_MODEL_ID", "Qwen/Qwen3-4B")
 os.environ.setdefault("MW_LLM_LAZY_LOAD", "1")
 os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
 
@@ -43,15 +43,15 @@ from backend.agent import MaintenanceWizard
 from backend.dynamic_assets import list_inactive_dynamic_assets, load_dynamic_assets, load_dynamic_rules
 
 
-BASE_MODEL_ID = os.getenv("BASE_MODEL_ID", "Qwen/Qwen3-0.6B")
+BASE_MODEL_ID = os.getenv("BASE_MODEL_ID", "Qwen/Qwen3-4B")
 ADAPTER_REPO_ID = os.getenv("ADAPTER_REPO_ID", "rn8205/qwen38bfinetuned")
 ADAPTER_REPO_TYPE = os.getenv("ADAPTER_REPO_TYPE", "dataset")
 ADAPTER_FILENAME = os.getenv("ADAPTER_FILENAME", "qwen3_8b_steel_maintenance_lora.zip")
-DEFAULT_MODEL_LABEL = os.getenv("DEFAULT_MODEL_LABEL", "Qwen3-0.6B instant triage")
+DEFAULT_MODEL_LABEL = os.getenv("DEFAULT_MODEL_LABEL", "Qwen3-4B balanced analysis")
 MAX_INPUT_TOKENS = int(os.getenv("MAX_INPUT_TOKENS", "8192"))
 DEFAULT_MAX_NEW_TOKENS = int(os.getenv("MAX_NEW_TOKENS", "1000"))
 HARD_MAX_NEW_TOKENS = int(os.getenv("HARD_MAX_NEW_TOKENS", "1100"))
-REQUEST_TIMEOUT_SECONDS = float(os.getenv("REQUEST_TIMEOUT_SECONDS", "180"))
+REQUEST_TIMEOUT_SECONDS = float(os.getenv("REQUEST_TIMEOUT_SECONDS", "0"))
 
 MODEL_OPTIONS: dict[str, dict[str, Any]] = {
     "Qwen3-8B LoRA fine-tuned": {
@@ -64,7 +64,7 @@ MODEL_OPTIONS: dict[str, dict[str, Any]] = {
         "model_id": "Qwen/Qwen3-4B",
         "adapter": False,
         "provider": "local_gpu_base",
-        "description": "Balanced Qwen3 reasoning profile for responsive maintenance analysis, troubleshooting and planning demos.",
+        "description": "Best default reasoning profile for the live demo. It gives deeper analysis over the prompt, retrieved facts, risk/RUL signals and memory; complex answers can take around two minutes while the model reasons and writes.",
     },
     "Qwen3-1.7B fast analysis": {
         "model_id": "Qwen/Qwen3-1.7B",
@@ -80,7 +80,7 @@ MODEL_OPTIONS: dict[str, dict[str, Any]] = {
     },
 }
 if DEFAULT_MODEL_LABEL not in MODEL_OPTIONS:
-    DEFAULT_MODEL_LABEL = "Qwen3-0.6B instant triage"
+    DEFAULT_MODEL_LABEL = "Qwen3-4B balanced analysis"
 DEFAULT_MODEL_CONFIG = MODEL_OPTIONS[DEFAULT_MODEL_LABEL]
 
 INIT_LOCK = threading.Lock()
@@ -476,59 +476,111 @@ def compact_result(result: dict) -> dict:
 
 def activity_stages_for_prompt(message: str) -> list[str]:
     q = str(message or "").lower()
-    if "sop" in q or "standard operating procedure" in q or ("replace" in q and any(x in q for x in ["seal", "pump", "bearing", "gearbox", "motor"])):
-        return [
-            "LLM planner: classify as SOP/checklist request",
-            "Retrieval: prioritize SOP/manual/safety evidence",
-            "Safety: add LOTO, zero-energy and permit hold points",
-            "Procedure: assemble step-by-step field checklist",
-            "Verifier: block invented torque, limits or part numbers",
-            "Qwen writer: produce engineer-facing SOP answer",
-        ]
-    if re.search(r"\b(?:error|fault)\s+code\b", q) or re.search(r"\be[- ]?\d{2,4}\b", q):
-        return [
-            "LLM planner: classify as error-code lookup",
-            "Code guard: preserve the exact fault code",
-            "Retrieval: search OEM/manual/code evidence",
-            "Safety: prepare no-blind-reset guidance",
-            "Verifier: reject unsupported code meanings",
-            "Qwen writer: produce concise answer-first response",
-        ]
-    if any(x in q for x in ["only one", "choose", "rank", "priority", "prioritize", "immediate maintenance"]):
-        return [
-            "LLM planner: classify plant-priority scope",
-            "Sensor tools: score health, anomaly and RUL",
-            "Memory tools: include active dynamic assets only",
-            "Rules tools: apply matching safety rules",
-            "Procurement tools: check spares and lead-time risk",
-            "Qwen writer: explain winner and second-place tradeoff",
-        ]
-    if any(x in q for x in ["spare", "procurement", "lead time", "inventory", "stock"]):
-        return [
-            "LLM planner: classify spares/procurement request",
-            "Retrieval: identify equipment boundary",
-            "Inventory tools: check stock and lead-time fields",
-            "Risk tools: estimate delay and substitute exposure",
-            "Verifier: avoid invented part numbers or stock",
-            "Qwen writer: produce procurement-ready answer",
-        ]
-    if any(x in q for x in ["stopped", "tripped", "right now", "first checks", "walk me through"]):
-        return [
-            "LLM planner: classify emergency troubleshooting",
-            "Safety tools: check stop-work and LOTO conditions",
-            "Retrieval: gather equipment-class guidance",
-            "Reasoning: order immediate checks before RCA",
-            "Verifier: keep advice field-safe",
-            "Qwen writer: produce action-first checklist",
-        ]
-    return [
-        "LLM planner: understand objective and route",
-        "Retrieval: search RAG, SOPs, history and policies",
-        "Tool layer: calculate any risk, RUL, spares or memory facts",
-        "Safety: check LOTO, escalation and missing evidence",
-        "Verifier: preserve locked facts and reject hallucinations",
-        "Qwen writer: produce final natural-language answer",
+    subject = infer_prompt_subject(message)
+    intent = infer_activity_intent(message)
+    stages = [
+        f"Reading the exact request about {subject} and deciding the best maintenance route",
+        f"Asking the LLM planner whether this is {intent}, asset comparison, SOP, RCA, spares, logbook, or safety work",
     ]
+    if intent == "SOP / field procedure":
+        stages.extend(
+            [
+                f"Searching SOP, manual and safety evidence that matches {subject}",
+                f"Checking isolation, LOTO, stored-energy and acceptance hold points for {subject}",
+                f"Letting Qwen write the actual step-by-step procedure instead of a template",
+            ]
+        )
+    elif intent == "fault-code lookup":
+        stages.extend(
+            [
+                f"Preserving the exact fault code in the prompt and searching code-table evidence for {subject}",
+                f"Separating verified code meaning from general safety guidance for {subject}",
+                "Preparing a no-blind-reset answer if OEM evidence is missing",
+            ]
+        )
+    elif intent == "plant priority decision":
+        stages.extend(
+            [
+                "Scoring original demo assets and active remembered assets together",
+                "Checking RUL, hybrid risk, safety rules, evidence confidence and procurement exposure",
+                "Letting Qwen explain the winner, runner-up and next system action in plain language",
+            ]
+        )
+    elif intent == "spares / procurement":
+        stages.extend(
+            [
+                f"Finding the equipment boundary and likely spares for {subject}",
+                "Checking inventory, lead-time, substitutes and downtime exposure",
+                "Letting Qwen write a procurement-ready recommendation with missing evidence called out",
+            ]
+        )
+    elif intent == "urgent troubleshooting":
+        stages.extend(
+            [
+                f"Separating immediate safe checks from deeper RCA for {subject}",
+                "Checking stop-work, LOTO, standby equipment and escalation conditions",
+                "Letting Qwen write a first-actions sequence that a shift team can follow",
+            ]
+        )
+    else:
+        stages.extend(
+            [
+                f"Retrieving relevant SOP, history, failure-log and plant context for {subject}",
+                f"Running only the tools that add value for this request: risk, RUL, memory, spares or evidence",
+                "Letting Qwen synthesize a clean answer without showing internal tool traces",
+            ]
+        )
+    stages.append("Final verifier checks hidden metadata, unsupported claims, NaN/null text and factual consistency")
+    return stages[:7]
+
+
+def infer_prompt_subject(message: str) -> str:
+    text = str(message or "").strip()
+    if not text:
+        return "the current maintenance question"
+    asset_ids = re.findall(r"\b[A-Z]{2,5}[- ]?\d{1,4}\b", text.upper())
+    if asset_ids:
+        return ", ".join(asset_ids[:3])
+    equipment_terms = [
+        "blast furnace blower",
+        "hydraulic pump seal",
+        "rolling mill",
+        "conveyor belt",
+        "ladle car",
+        "eaf transformer",
+        "bof tilting drive",
+        "gearbox",
+        "pump",
+        "motor",
+        "bearing",
+        "caster",
+        "descaler",
+    ]
+    lower = text.lower()
+    for term in equipment_terms:
+        if term in lower:
+            return term
+    words = [w for w in re.findall(r"[A-Za-z][A-Za-z0-9/-]{2,}", text) if w.lower() not in {"what", "which", "show", "tell", "give", "should", "today", "please", "with", "about"}]
+    return " ".join(words[:5]) if words else "this maintenance request"
+
+
+def infer_activity_intent(message: str) -> str:
+    q = str(message or "").lower()
+    if "sop" in q or "standard operating procedure" in q or ("replace" in q and any(x in q for x in ["seal", "pump", "bearing", "gearbox", "motor"])):
+        return "SOP / field procedure"
+    if re.search(r"\b(?:error|fault)\s+code\b", q) or re.search(r"\be[- ]?\d{2,4}\b", q):
+        return "fault-code lookup"
+    if any(x in q for x in ["only one", "choose", "rank", "priority", "prioritize", "immediate maintenance", "compare"]):
+        return "plant priority decision"
+    if any(x in q for x in ["spare", "procurement", "lead time", "inventory", "stock"]):
+        return "spares / procurement"
+    if any(x in q for x in ["stopped", "tripped", "right now", "first checks", "walk me through", "immediately"]):
+        return "urgent troubleshooting"
+    if any(x in q for x in ["logbook", "work done", "technician"]):
+        return "digital logbook entry"
+    if any(x in q for x in ["rul", "remaining useful life", "trend", "predict"]):
+        return "RUL / trend analysis"
+    return "general steel maintenance reasoning"
 
 
 def format_activity(
@@ -977,9 +1029,11 @@ def ask_agent(
 ):
     history = history or []
     message = (message or "").strip()
+    clear_composer = gr.update(value="", interactive=True)
+    keep_composer = gr.update(interactive=True)
     if not message:
         empty = json.dumps({}, indent=2)
-        yield history, "", gr.update(value="", visible=False), gr.update(visible=False), format_activity(), *run_stop_controls(False), empty, "[]", "[]", "[]", asset_table(), memory_table()
+        yield history, keep_composer, gr.update(value="", visible=False), gr.update(visible=False), format_activity(), *run_stop_controls(False), empty, "[]", "[]", "[]", asset_table(), memory_table()
         return
 
     running_stages = activity_stages_for_prompt(message)
@@ -991,7 +1045,7 @@ def ask_agent(
     running_history[-1] = (message, loading_bubble)
     yield (
         running_history,
-        "",
+        clear_composer,
         gr.update(value=format_activity(running=True, message=message, stage=running_stages[0], stages=running_stages), visible=True),
         gr.update(visible=False),
         format_activity(running=True, message=message, stage=running_stages[0], stages=running_stages),
@@ -1026,7 +1080,7 @@ def ask_agent(
     tick = 0
     while worker.is_alive():
         elapsed = time.monotonic() - started_at
-        if elapsed > REQUEST_TIMEOUT_SECONDS:
+        if REQUEST_TIMEOUT_SECONDS > 0 and elapsed > REQUEST_TIMEOUT_SECONDS:
             timeout_answer = (
                 "This request took too long while the GPU model was loading or generating. "
                 "The app stopped waiting so the UI does not hang. Please retry once the model is warm, "
@@ -1048,12 +1102,12 @@ def ask_agent(
                 },
                 indent=2,
             )
-            yield timeout_history, "", gr.update(value="", visible=False), gr.update(visible=False), timeout_activity, *run_stop_controls(False), timeout_packet, "[]", "[]", "[]", assets_snapshot, memory_snapshot
+            yield timeout_history, keep_composer, gr.update(value="", visible=False), gr.update(visible=False), timeout_activity, *run_stop_controls(False), timeout_packet, "[]", "[]", "[]", assets_snapshot, memory_snapshot
             return
         running_history[-1] = (message, loading_bubble)
         yield (
             running_history,
-            "",
+            keep_composer,
             gr.update(
                 value=format_activity(
                     running=True,
@@ -1116,14 +1170,14 @@ def ask_agent(
         partial = answer[:end]
         cursor = "" if end >= len(answer) else "▌"
         typed_history[-1] = (message, partial + cursor)
-        yield typed_history, "", gr.update(value="", visible=False), visual_update, answer_activity, *run_stop_controls(False), decision, plan_text, calls_text, checks_text, assets, memory
+        yield typed_history, keep_composer, gr.update(value="", visible=False), visual_update, answer_activity, *run_stop_controls(False), decision, plan_text, calls_text, checks_text, assets, memory
         if len(answer) < 4000:
             time.sleep(0.004)
 
     typed_history[-1] = (message, answer)
     yield (
         typed_history,
-        "",
+        keep_composer,
         gr.update(value="", visible=False),
         visual_update,
         answer_activity,
@@ -1390,6 +1444,19 @@ CSS = """
 .feature-chip { border: 1px solid rgba(14,165,233,.22); background: rgba(15,23,42,.92); color: #e2e8f0; border-radius: 14px; padding: 12px 13px; min-height: 74px; }
 .feature-chip b { display: block; color: #f8fafc; margin-bottom: 4px; font-size: 13px; }
 .feature-chip span { color: #94a3b8; font-size: 12px; line-height: 1.35; }
+.chat-shell { align-items: stretch; }
+.left-sidebar .feature-grid { grid-template-columns: 1fr; }
+.left-sidebar, .right-sidebar { max-height: calc(100vh - 170px); overflow-y: auto; padding-right: 4px; }
+.chat-center { min-width: min(760px, 100%); }
+.composer-row {
+  position: sticky;
+  bottom: 0;
+  z-index: 30;
+  background: linear-gradient(180deg, rgba(11,17,32,.70), #0b1120 34%);
+  border-top: 1px solid rgba(148,163,184,.20);
+  padding: 10px 0 8px;
+}
+.composer-row textarea { font-size: 15px !important; }
 .chat-working-panel { border: 1px solid rgba(14,165,233,.32); background: rgba(14,165,233,.08); color: #dbeafe; border-radius: 14px; padding: 12px 14px; margin-bottom: 10px; }
 .demo-prompt-list { gap: 8px; }
 .demo-prompt-btn { text-align: left !important; justify-content: flex-start !important; white-space: normal !important; min-height: 44px; border-radius: 12px !important; }
@@ -1420,38 +1487,26 @@ with gr.Blocks(title="FeCMind: Tata Steel Agentic AI", css=CSS, theme=gr.themes.
         """
         <div class="hero">
           <h1>FeCMind: Tata Steel Agentic Maintenance AI</h1>
-          <p>Default fast Qwen3-0.6B triage with selectable Qwen3-8B + LoRA high-fidelity mode, grounded by ML risk scoring, RAG evidence, dynamic memory, safety rules, spares, logbook, and verifier checks.</p>
+          <p>Default Qwen3-4B reasoning mode with selectable Qwen3-8B + LoRA high-fidelity mode, grounded by ML risk scoring, RAG evidence, dynamic memory, safety rules, spares, logbook, and verifier checks.</p>
         </div>
         """
     )
 
     with gr.Tabs():
         with gr.Tab("Agent Chat"):
-            with gr.Row():
-                with gr.Column(scale=2):
-                    gr.Markdown("### Maintenance Copilot")
-                    gr.HTML(
-                        """
-                        <div class="feature-grid">
-                          <div class="feature-chip"><b>Industrial Qwen profiles</b><span>0.6B opens by default for fast demos; 8B LoRA is available for deeper maintenance reasoning.</span></div>
-                          <div class="feature-chip"><b>RAG + SOP evidence</b><span>Grounded answers from SOPs, policies, history, failure reports and plant records.</span></div>
-                          <div class="feature-chip"><b>ML risk + RUL</b><span>Hybrid priority scoring, anomaly signals, remaining useful life and delay impact.</span></div>
-                          <div class="feature-chip"><b>Agent memory</b><span>Dynamic assets, remembered safety rules, spares, logbook and feedback loop.</span></div>
-                        </div>
-                        """
-                    )
-                    chat_activity_md = gr.Markdown(value="", visible=False, elem_classes=["chat-working-panel"])
-                    chatbot = gr.Chatbot(height=620, show_copy_button=True, label="Agent conversation")
-                    chat_visual = gr.Plot(label="Agent visual", visible=False)
-                    with gr.Row():
-                        prompt_box = gr.Textbox(
-                            placeholder="Ask any steel-plant maintenance, operations, safety, spares, RCA, SOP, quality, or reliability question...",
-                            lines=3,
-                            scale=6,
-                            show_label=False,
+            with gr.Row(elem_classes=["chat-shell"]):
+                with gr.Column(scale=1, min_width=260, elem_classes=["left-sidebar"]):
+                    with gr.Accordion("Maintenance Copilot", open=False):
+                        gr.HTML(
+                            """
+                            <div class="feature-grid">
+                              <div class="feature-chip"><b>Industrial Qwen profiles</b><span>Qwen3-4B opens by default for strong reasoning over the prompt, retrieved facts and agent memory. Deep analysis can take around two minutes depending on the prompt and evidence.</span></div>
+                              <div class="feature-chip"><b>RAG + SOP evidence</b><span>Grounded answers from SOPs, policies, history, failure reports and plant records.</span></div>
+                              <div class="feature-chip"><b>ML risk + RUL</b><span>Hybrid priority scoring, anomaly signals, remaining useful life and delay impact.</span></div>
+                              <div class="feature-chip"><b>Agent memory</b><span>Dynamic assets, remembered safety rules, spares, logbook and feedback loop.</span></div>
+                            </div>
+                            """
                         )
-                        send_btn = gr.Button("Run Agent", variant="primary", scale=1)
-                        stop_btn = gr.Button("Stop", variant="stop", scale=1, visible=False)
                     gr.Markdown("### One-click demo prompts")
                     demo_prompt_buttons: list[tuple[gr.Button, gr.State]] = []
                     with gr.Column(elem_classes=["demo-prompt-list"]):
@@ -1459,7 +1514,21 @@ with gr.Blocks(title="FeCMind: Tata Steel Agentic AI", css=CSS, theme=gr.themes.
                             prompt_state = gr.State(example_prompt)
                             prompt_button = gr.Button(example_prompt, variant="secondary", size="sm", elem_classes=["demo-prompt-btn"])
                             demo_prompt_buttons.append((prompt_button, prompt_state))
-                with gr.Column(scale=1):
+                with gr.Column(scale=3, min_width=620, elem_classes=["chat-center"]):
+                    chat_activity_md = gr.Markdown(value="", visible=False, elem_classes=["chat-working-panel"])
+                    chatbot = gr.Chatbot(height=620, show_copy_button=True, label="Agent conversation")
+                    chat_visual = gr.Plot(label="Agent visual", visible=False)
+                    with gr.Row(elem_classes=["composer-row"]):
+                        prompt_box = gr.Textbox(
+                            placeholder="Ask any steel-plant maintenance, operations, safety, spares, RCA, SOP, quality, or reliability question... Press Enter to send.",
+                            lines=2,
+                            max_lines=6,
+                            scale=6,
+                            show_label=False,
+                        )
+                        send_btn = gr.Button("Run Agent", variant="primary", scale=1)
+                        stop_btn = gr.Button("Stop", variant="stop", scale=1, visible=False)
+                with gr.Column(scale=1, min_width=300, elem_classes=["right-sidebar"]):
                     gr.Markdown("### Session Controls")
                     role_dropdown = gr.Dropdown(
                         label="Role context",
@@ -1488,7 +1557,7 @@ with gr.Blocks(title="FeCMind: Tata Steel Agentic AI", css=CSS, theme=gr.themes.
                     gr.Markdown(
                         """
                         <div class="panel-note">
-                        The app opens on Qwen3-0.6B for a responsive first demo. Switch to Qwen3-8B LoRA when you want the deepest maintenance reasoning.
+                        The app opens on Qwen3-4B because it is the best default for reasoning over industrial prompts, retrieved facts, RUL/risk signals and memory. Depending on the analysis required, generation can take around two minutes. Switch to Qwen3-8B LoRA for the highest-fidelity maintenance reasoning, or to smaller Qwen profiles for quick triage.
                         The dashboard loads from local plant data first; the selected LLM warms only for chat/synthesis.
                         </div>
                         """
