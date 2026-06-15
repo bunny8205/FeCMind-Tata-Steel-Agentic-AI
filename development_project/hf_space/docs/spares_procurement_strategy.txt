@@ -1,0 +1,9 @@
+Steel maintenance spares and procurement strategy.
+
+Classify spares by criticality, lead time, consumption rate, failure consequence, and substitute availability.
+
+Critical long-lead spares must be reserved before planned shutdown. Zero-stock critical spares require immediate purchase requisition and management visibility. High-cost spares should be linked to condition monitoring evidence and shutdown plans.
+
+For each maintenance recommendation, state available stock, lead time, repairability, substitute rules, and whether procurement should be immediate, planned, or only monitored.
+
+Procurement priority should increase when an asset is a bottleneck, RUL is low, safety risk is high, previous delay hours are high, or no substitute is approved.

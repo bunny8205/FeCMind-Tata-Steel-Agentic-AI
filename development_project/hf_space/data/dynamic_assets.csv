@@ -1,0 +1,17 @@
+asset_id,asset_type,area,criticality,temperature,vibration,current,pressure,rpm,alarm_count,delay_hours,spare_lead_time_days,operator_notes,active,created_at,updated_at,source_query
+SNT-10,Sinter Plant Exhaust Fan,Sinter Plant,High,87.0,9.5,73.0,2.1,1480.0,4.0,0.0,0.0,,True,2026-06-12T04:26:39,2026-06-14T23:39:49,"Bearing temp is 87 C (limit 90), vibration 9.5 mm/s (limit 10), oil pressure 2.1 bar (normal 2.5). Replacement part has a 14-day procurement lead time and we run 24/7. Give me a full risk assessment and maintenance plan."
+RMF-31,Roughing Mill Fan,Roughing Mill,Medium,,7.8,,,1480.0,2.0,0.0,0.0,,True,2026-06-12T04:28:13,2026-06-12T04:41:04,Register three new assets: RMF-31 Roughing Mill Fan vibration 7.8 alarm count 2; DES-08 Descaler Pump pressure 4.8 alarm count 3; CCM-22 Caster Mold Oscillator vibration 6.2 current 82 alarm count 2. Remember all.
+DES-08,Descaler Pump,Descaling,Medium,,4.2,,6.8,1480.0,1.0,0.0,0.0,loud cavitation noise,False,2026-06-12T04:28:13,2026-06-13T10:05:38,"Update DES-08: vibration reduced to 4.2 mm/s, pressure improved to 6.8 bar, alarm count reduced to 1, but operator reports loud cavitation noise. Did risk actually reduce or should it stay elevated?"
+CCM-22,Caster Mold Oscillator,Caster,Medium,,6.2,96.0,,1480.0,2.0,0.0,0.0,,True,2026-06-12T04:28:13,2026-06-12T09:15:06,"Ask any steel-plant maintenance, operations, safety, spares, RCA, SOP, quality, or reliability question.
+YOU
+Update DES-08: vibration reduced to 4.2 mm/s, pressure improved to 6.8 bar, alarm count reduced to 1, but operator reports loud cavitation noise. Did risk actually reduce or should it stay elevated?
+AI
+I detected an asset update request, but I could not apply it to dynamic memory. Missing or unknown assets: none parsed.
+YOU
+Update CCM-22: only current changed to 96 A. Keep all other remembered values unchanged. Recalculate priority.
+AI
+I detected an asset update request, but I could not apply it to dynamic memory. Missing or unknown assets: none parsed."
+BOF-77,Basic Oxygen Furnace Tilting Gearbox,Bof Shop,Critical,68.0,9.1,74.0,8.2,1480.0,3.0,0.0,0.0,,True,2026-06-12T09:28:37,2026-06-12T09:42:44,"Now update it with vibration 9.1, temperature 68, current 74, pressure 8.2, alarms 3."
+BFB-21,Blast Furnace Blower,Blast Furnace,Critical,84.0,7.1,86.0,7.4,1480.0,1.0,0.0,0.0,,True,2026-06-12T09:47:04,2026-06-12T10:26:00,Reactivate BFB-21 because blower vibration returned to 7.1 mm/s and temperature is 84 C. Keep previous history and apply remembered safety rules.
+BOF-88,Basic Oxygen Furnace Tilting Gearbox,Bof Shop,Critical,66.0,9.4,77.0,8.1,1480.0,3.0,0.0,0.0,,True,2026-06-12T09:43:47,2026-06-12T09:47:53,"Now update it with vibration 9.4, temperature 66, current 77, pressure 8.1, alarms 3."
+TST-01,Test Pump,Utility,High,,3.2,,4.2,1480.0,4.0,0.0,0.0,,False,2026-06-12T23:38:15,2026-06-12T23:48:44,Update it with pressure 4.2 bar and alarm count 4.

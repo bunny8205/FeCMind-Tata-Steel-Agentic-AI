@@ -1,0 +1,11 @@
+Continuous caster abnormality and breakout prevention guide.
+
+Critical symptoms: mold temperature rise, uneven heat flux, friction increase, mold level instability, sudden casting speed change, abnormal oscillator vibration, breakout prediction alarm, water flow imbalance, and stopper rod instability.
+
+Likely causes: sticker formation, poor lubrication, SEN clogging, mold powder mismatch, copper plate wear, improper taper, cooling water blockage, unstable superheat, and control-loop disturbance.
+
+Immediate action: reduce casting speed under procedure, check mold level and heat flux trend, verify mold cooling water flow and delta temperature, inspect powder feed and lubrication, alert caster pulpit and mechanical maintenance, and prepare controlled stop if breakout risk remains high.
+
+Evidence to collect: heat flux map, mold thermocouple trend, caster speed trend, water flow readings, oscillation marks, shell thickness estimate, powder batch, SEN condition, and recent tundish/ladle events.
+
+Restart acceptance: stable mold level, normal heat flux, verified water flow, no repeated breakout alarm, approved process engineer sign-off, and logbook entry.

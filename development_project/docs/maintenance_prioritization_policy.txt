@@ -1,0 +1,7 @@
+Maintenance priority policy.
+        Prioritize by safety risk, asset criticality, failure risk, estimated RUL, production delay, spare availability, and repair lead time.
+        P1 Critical: high failure risk, low RUL, critical asset, production bottleneck, or safety risk.
+        P2 High: elevated failure risk or repeated alerts with meaningful production impact.
+        P3 Medium: warning condition that can be planned.
+        P4 Low: monitor only.
+        Always provide diagnosis, root cause, risk, RUL estimate, recommended repair plan, spares strategy, evidence sources, and alerting action.

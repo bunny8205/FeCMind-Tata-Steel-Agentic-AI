@@ -1,0 +1,11 @@
+Blast furnace maintenance decision guide.
+
+Common maintenance concerns include tuyere leakage, stave cooling abnormality, hot blast valve issues, charging equipment faults, burden distribution problems, gas cleaning equipment degradation, and skip or bell-less top failures.
+
+Risk factors: water ingress, high shell temperature, abnormal tuyere camera observation, cooling water delta temperature rise, high top pressure fluctuation, gas leakage, refractory wear, and unstable burden descent.
+
+Immediate response: isolate unsafe zones, notify furnace control room, verify cooling circuit pressure and flow, check gas detection and CO exposure controls, reduce operating stress if approved, and involve refractory, mechanical, and process experts.
+
+Root cause analysis should separate process causes, cooling system causes, refractory wear, instrumentation error, and mechanical failure. Evidence includes thermocouple trend, cooling water chemistry, gas analysis, burden distribution logs, inspection photos, and previous campaign history.
+
+Maintenance planning must include safety permit, hot work controls, gas testing, spares, refractory availability, shift handover, and restart criteria.

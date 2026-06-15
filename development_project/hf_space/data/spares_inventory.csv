@@ -1,0 +1,9 @@
+spare_id,asset_id,spare_part,stock_qty,lead_time_days,spare_criticality,unit_cost_inr
+SP-001,MTR-204,DE bearing 6312,2,5,Critical,18000
+SP-002,MTR-204,Cooling fan kit,1,7,High,12000
+SP-003,GBX-17,Gearbox bearing set,1,12,Critical,85000
+SP-004,GBX-17,Synthetic gear oil drum,4,2,High,15000
+SP-005,PMP-09,Mechanical seal kit,3,4,High,22000
+SP-006,PMP-09,Impeller assembly,1,10,Critical,65000
+SP-007,HPP-12,Hydraulic filter element,6,3,High,8000
+SP-008,HPP-12,Relief valve cartridge,1,9,Critical,32000

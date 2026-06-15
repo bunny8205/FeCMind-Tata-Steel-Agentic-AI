@@ -1,0 +1,5 @@
+incident_id,asset_id,incident_summary,severity,recommended_response
+INC-401,MTR-204,Temperature crossed high alarm during peak load,High,Inspect bearing and cooling path
+INC-402,GBX-17,Repeated vibration spikes during finishing load,Critical,Plan immediate vibration inspection
+INC-403,PMP-09,Cavitation noise reported by operator,High,Check suction strainer and pump inlet
+INC-404,HPP-12,Pressure recovery slow after valve actuation,Medium,Inspect filter and relief valve

@@ -1,0 +1,12 @@
+{
+  "public_ai4i_available": true,
+  "source_url": "https://archive.ics.uci.edu/ml/machine-learning-databases/00601/ai4i2020.csv",
+  "error": "",
+  "public_rows": 10000,
+  "leakage_control": {
+    "machine_failure_used_as_feature": false,
+    "twf_hdf_pwf_osf_rnf_used_as_features": false,
+    "machine_failure_used_only_as_target": true,
+    "steel_app_decision_model_separate_from_public_benchmark": true
+  }
+}

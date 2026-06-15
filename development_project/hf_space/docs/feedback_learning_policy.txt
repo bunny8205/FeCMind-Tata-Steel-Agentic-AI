@@ -1,0 +1,5 @@
+Feedback loop policy.
+        Engineer feedback must be stored in feedback_log.csv.
+        Accepted recommendations increase confidence for similar future cases.
+        Rejected recommendations must be used to revise action order and root cause ranking.
+        Digital maintenance logbook entries must be created for every agent recommendation and alert.

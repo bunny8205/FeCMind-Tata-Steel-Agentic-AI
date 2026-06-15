@@ -1,0 +1,36 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.env.*
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Generated caches and runtime outputs
+.cache/
+outputs/
+wandb/
+runs/
+trainer_checkpoints/
+checkpoints/
+artifacts/model_cache/
+*.log
+
+# Large model artifacts: hosted on Hugging Face datasets/model repos instead
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.gguf
+*.onnx
+*.zip
+
+# Secrets
+auth_token*
+*token*.txt

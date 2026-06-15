@@ -1,0 +1,9 @@
+Industrial maintenance safety and LOTO policy.
+
+Before intrusive maintenance, identify all energy sources: electrical, hydraulic, pneumatic, mechanical, gravitational, thermal, chemical, and stored process energy.
+
+Minimum controls: lockout-tagout, zero-energy verification, permit to work, line break permit where required, hot work permit where required, confined space permit where required, barricading, gas testing, PPE, and communication with control room.
+
+Stop-work triggers: unexpected movement, uncontrolled pressure release, high temperature exposure, CO or gas alarm, unstable suspended load, missing isolation confirmation, water ingress into hot process equipment, and repeated critical alarm without clear cause.
+
+Restart requires tool clearance, guard restoration, interlock verification, no leakage, normal vibration or pressure reading, operator acceptance, and logbook closure.

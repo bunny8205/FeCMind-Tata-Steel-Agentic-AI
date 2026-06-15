@@ -1,0 +1,5 @@
+work_order_id,asset_id,timestamp,issue,action_taken,result,downtime_hours
+WO-1001,MTR-204,2026-05-02 09:30:00,Motor temperature rising,Cleaned cooling fins and checked bearing grease,Temporary improvement,2.0
+WO-1002,GBX-17,2026-05-08 14:00:00,Gearbox vibration above warning,"Oil sample collected, alignment checked",Bearing wear suspected,4.5
+WO-1003,PMP-09,2026-05-14 11:15:00,Pump cavitation noise,Checked suction strainer and impeller clearance,Suction restriction found,3.0
+WO-1004,HPP-12,2026-05-20 16:20:00,Hydraulic pressure fluctuation,Inspected relief valve and filter,Filter choking observed,2.5

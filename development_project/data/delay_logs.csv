@@ -1,0 +1,5 @@
+delay_id,asset_id,area,delay_hours,delay_reason
+DL-301,MTR-204,Hot Strip Mill,3.5,Reduced motor load due to overheating
+DL-302,GBX-17,Finishing Mill,8.0,Gearbox vibration may stop finishing stand
+DL-303,PMP-09,Caster Utility,5.0,Cooling water instability can affect caster
+DL-304,HPP-12,Plate Mill,4.0,Hydraulic low pressure slows actuator cycle

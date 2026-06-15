@@ -1,0 +1,11 @@
+Rolling mill vibration and quality guide.
+
+Symptoms: high stand vibration, chatter marks, roll force variation, strip thickness deviation, camber, flatness defects, bearing temperature rise, gearbox noise, and motor current oscillation.
+
+Likely mechanical causes: roll bearing wear, chock clearance, gearbox gear mesh defect, coupling misalignment, foundation looseness, lubrication starvation, and roll imbalance.
+
+Likely process or control causes: incorrect reduction schedule, unstable tension, roll bite instability, cooling mismatch, AGC control issue, and speed resonance.
+
+Inspection order: trend vibration by stand, compare drive and operator side readings, check roll force and motor current oscillation, verify lubrication flow, inspect roll chocks and bearings, take oil sample, check coupling alignment, and compare recent roll changes.
+
+Quality linkage: vibration and roll force oscillation can create chatter, thickness variation, shape defects, and surface marks. Containment should include product hold or sampling when critical quality symptoms are present.

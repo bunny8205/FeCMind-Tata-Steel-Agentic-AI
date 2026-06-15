@@ -1,0 +1,6 @@
+Asset MTR-204 induction motor SOP.
+        Symptoms: high winding temperature, rising current, vibration increase, repeated thermal alarms.
+        Likely root causes: bearing lubrication loss, blocked cooling fins, overloaded drive, rotor imbalance.
+        Inspection order: bearing temperature and grease condition, cooling fan, air path, current imbalance, coupling alignment.
+        Recommended action: reduce load if temperature exceeds 80 C, inspect lubrication, clean cooling path, plan bearing replacement if vibration exceeds 5 mm/s.
+        Required spares: DE bearing 6312, cooling fan kit, grease, current clamp meter.

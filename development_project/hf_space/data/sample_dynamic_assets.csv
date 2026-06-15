@@ -1,0 +1,2 @@
+asset_id,asset_type,area,criticality,temperature,vibration,current,pressure,rpm,alarm_count,delay_hours,spare_lead_time_days,operator_notes,active,created_at,updated_at,source_query
+BF-07,Blast Furnace Blower,Blast Furnace,Critical,82,7.1,88,8.0,1480,3,6,5,bearing noise,True,2026-06-12T00:00:00,2026-06-12T00:00:00,sample template

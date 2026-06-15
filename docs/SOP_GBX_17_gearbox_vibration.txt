@@ -1,0 +1,6 @@
+Asset GBX-17 gearbox SOP.
+        Symptoms: vibration above 7 mm/s warning or above 9 mm/s critical, temperature rise, abnormal noise.
+        Likely root causes: bearing pitting, gear mesh wear, coupling misalignment, oil contamination.
+        Inspection order: vibration spectrum, oil sample, bearing temperature, coupling alignment, gear backlash.
+        Recommended action: if vibration exceeds 9 mm/s create P1 alert, prepare bearing set, inspect oil, schedule controlled shutdown.
+        Required spares: gearbox bearing set, synthetic gear oil, coupling shim pack.

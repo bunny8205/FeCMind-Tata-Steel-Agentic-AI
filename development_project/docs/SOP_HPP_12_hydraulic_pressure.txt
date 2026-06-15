@@ -1,0 +1,6 @@
+Asset HPP-12 hydraulic power pack SOP.
+        Symptoms: low system pressure, slow actuator response, high oil temperature, pressure alarm.
+        Likely root causes: filter choking, relief valve leakage, pump wear, hydraulic oil leakage.
+        Inspection order: filter differential pressure, relief valve setting, oil level, pump noise, hose leakage.
+        Recommended action: replace filter, inspect relief valve cartridge, top up oil, plan pump inspection if pressure remains below limit.
+        Required spares: hydraulic filter element, relief valve cartridge, hydraulic oil.

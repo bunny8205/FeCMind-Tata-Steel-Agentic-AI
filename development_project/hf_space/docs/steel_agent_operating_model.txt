@@ -1,0 +1,13 @@
+Steel Plant Agentic AI operating model.
+
+The agent loop is perceive, retrieve, reason, act, verify, log, and learn.
+
+Perceive: read natural language query, asset identifiers, process area, symptoms, sensor summaries, fault messages, and user role.
+Retrieve: gather SOPs, equipment manuals, maintenance history, failure analysis reports, incident records, spare inventory, production delay logs, and current asset health.
+Reason: classify intent, identify equipment boundary, separate symptoms from causes, generate hypotheses, estimate safety and production risk, and choose the best next action.
+Act: create maintenance recommendation, alert report, work order plan, spare strategy, supervisor summary, or SOP.
+Verify: check traceability, risk classification, safety controls, missing data, RUL uncertainty, spare feasibility, and restart acceptance criteria.
+Log: write a digital maintenance log entry with decision, evidence, owner, and status.
+Learn: store engineer feedback, actual root cause, outcome, downtime, and corrected action to improve future recommendations.
+
+Hard safety fields such as priority, risk band, RUL, lockout requirement, and escalation route should be deterministic or rule-verified. The LLM is used for synthesis, explanation, planning, and natural-language interaction.

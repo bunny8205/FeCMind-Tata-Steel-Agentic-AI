@@ -1,0 +1,5 @@
+report_id,asset_id,timestamp,failure_mode,root_cause,corrective_action,business_impact
+FR-201,MTR-204,2026-04-18 07:45:00,Overheating,Bearing lubrication degradation,"Regrease bearing, inspect load current, clean cooling path",Line speed reduction for 3 hours
+FR-202,GBX-17,2026-04-26 18:10:00,High vibration,Bearing pitting and gear mesh misalignment,"Replace bearing set, verify coupling alignment",Finishing mill delay risk
+FR-203,PMP-09,2026-05-04 10:40:00,Cavitation,Low suction head due to clogged strainer,"Clean strainer, inspect impeller erosion",Cooling instability risk
+FR-204,HPP-12,2026-05-11 13:05:00,Low pressure,Hydraulic oil leakage and filter choking,"Replace filter, inspect seals, top up oil",Actuator slow response

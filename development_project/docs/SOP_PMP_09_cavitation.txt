@@ -1,0 +1,6 @@
+Asset PMP-09 cooling water pump SOP.
+        Symptoms: low suction pressure, vibration increase, rattling sound, fluctuating discharge pressure.
+        Likely root causes: clogged suction strainer, low tank level, air ingress, impeller erosion.
+        Inspection order: suction strainer, tank level, inlet valve position, seal leakage, impeller condition.
+        Recommended action: clean strainer, verify suction head, inspect impeller and mechanical seal, monitor pressure recovery.
+        Required spares: mechanical seal kit, impeller assembly, suction gasket.

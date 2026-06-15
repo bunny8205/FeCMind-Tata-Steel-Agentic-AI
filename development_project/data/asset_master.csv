@@ -1,0 +1,5 @@
+asset_id,asset_type,area,criticality,criticality_score,main_issue
+MTR-204,Induction Motor,Hot Strip Mill,High,3,overheating and high current
+GBX-17,Gearbox,Finishing Mill,Critical,4,abnormal vibration and bearing wear
+PMP-09,Cooling Water Pump,Caster Utility,High,3,cavitation and low suction pressure
+HPP-12,Hydraulic Power Pack,Plate Mill,Medium,2,low hydraulic pressure and leakage risk
